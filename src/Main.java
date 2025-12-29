@@ -1,28 +1,22 @@
-import controller.AppointmentController;
-import controller.ClinicianController;
 import controller.PatientController;
+import view.MainFrame;
+
+import javax.swing.*;
 
 public class Main {
     public static void main(String[] args) {
-        try {
-            PatientController pc = new PatientController();
-            pc.load("data/patients.csv");
-            System.out.println("Patients loaded: " + pc.getAll().size());
-            if (!pc.getAll().isEmpty()) System.out.println(pc.getAll().get(0));
+        SwingUtilities.invokeLater(() -> {
+            try {
+                PatientController pc = new PatientController();
+                pc.load("data/patients.csv");
 
-            ClinicianController cc = new ClinicianController();
-            cc.load("data/clinicians.csv");
-            System.out.println("Clinicians loaded: " + cc.getAll().size());
-            if (!cc.getAll().isEmpty()) System.out.println(cc.getAll().get(0));
+                MainFrame frame = new MainFrame(pc);
+                frame.setVisible(true);
 
-            AppointmentController ac = new AppointmentController();
-            ac.load("data/appointments.csv");
-            System.out.println("Appointments loaded: " + ac.getAll().size());
-            if (!ac.getAll().isEmpty()) System.out.println(ac.getAll().get(0));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 }
 
