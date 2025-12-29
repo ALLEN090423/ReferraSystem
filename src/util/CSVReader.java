@@ -19,7 +19,6 @@ public class CSVReader {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
 
-            // skip header if present
             if (hasHeader) {
                 br.readLine();
             }
@@ -32,8 +31,8 @@ public class CSVReader {
         return rows;
     }
 
-    // Basic CSV parsing: handles quoted commas.
-    private static String[] parseCsvLine(String line) {
+    // Make this public so CSVTable can reuse it.
+    public static String[] parseCsvLine(String line) {
         List<String> fields = new ArrayList<>();
         StringBuilder current = new StringBuilder();
         boolean inQuotes = false;
@@ -42,7 +41,7 @@ public class CSVReader {
             char c = line.charAt(i);
 
             if (c == '"') {
-                inQuotes = !inQuotes; // toggle
+                inQuotes = !inQuotes;
             } else if (c == ',' && !inQuotes) {
                 fields.add(current.toString().trim());
                 current.setLength(0);

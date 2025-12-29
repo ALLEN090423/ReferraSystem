@@ -1,20 +1,26 @@
-import util.CSVReader;
-
-import java.util.List;
+import controller.AppointmentController;
+import controller.ClinicianController;
+import controller.PatientController;
 
 public class Main {
     public static void main(String[] args) {
         try {
-            List<String[]> patients = CSVReader.readAll("data/patients.csv", true);
-            System.out.println("Loaded patients: " + patients.size());
+            PatientController pc = new PatientController();
+            pc.load("data/patients.csv");
+            System.out.println("Patients loaded: " + pc.getAll().size());
+            if (!pc.getAll().isEmpty()) System.out.println(pc.getAll().get(0));
 
-            // print first row to verify
-            if (!patients.isEmpty()) {
-                System.out.println("First patient row fields: " + patients.get(0).length);
-                System.out.println("First field: " + patients.get(0)[0]);
-            }
+            ClinicianController cc = new ClinicianController();
+            cc.load("data/clinicians.csv");
+            System.out.println("Clinicians loaded: " + cc.getAll().size());
+            if (!cc.getAll().isEmpty()) System.out.println(cc.getAll().get(0));
+
+            AppointmentController ac = new AppointmentController();
+            ac.load("data/appointments.csv");
+            System.out.println("Appointments loaded: " + ac.getAll().size());
+            if (!ac.getAll().isEmpty()) System.out.println(ac.getAll().get(0));
+
         } catch (Exception e) {
-            System.out.println("Failed to load CSV: " + e.getMessage());
             e.printStackTrace();
         }
     }
