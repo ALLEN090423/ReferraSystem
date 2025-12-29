@@ -1,5 +1,5 @@
 patient_id,first_name,last_name,date_of_birth,nhs_number,gender,phone_number,email,address,postcode,emergency_contact_name,emergency_contact_phone,registration_date,gp_surgery_id
-P001,John,Smith1,1985-03-16,1234567890,,07123456782,john.smith1@email.com,,,,,,S001
+P001,John,Smith,1985-03-15,1234567890,,07123456782,john.smith@email.com,,,,,,S001
 P002,Emma,Johnson,1990-07-22,2345678901,,07234567890,emma.johnson@email.com,,,,,,S001
 P003,Robert,Williams,1975-11-08,3456789012,,07345678901,robert.williams@email.com,,,,,,S002
 P004,Sarah,Brown,1988-09-14,4567890123,,07456789012,sarah.brown@email.com,,,,,,S001
