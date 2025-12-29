@@ -3,8 +3,6 @@ package view;
 import controller.ClinicianController;
 import controller.PatientController;
 import controller.PrescriptionController;
-import model.Clinician;
-import model.Patient;
 import model.Prescription;
 
 import javax.swing.*;
@@ -13,6 +11,10 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Swing panel for displaying prescriptions.
+ * Shows core fields in JTable and full CSV row in "View Details" dialog.
+ */
 public class PrescriptionPanel extends JPanel {
 
     private final PrescriptionController prescriptionController;
@@ -34,9 +36,11 @@ public class PrescriptionPanel extends JPanel {
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton btnRefresh = new JButton("Refresh");
         JButton btnAdd = new JButton("Add Prescription");
+        JButton btnDetails = new JButton("View Details");
 
         top.add(btnRefresh);
         top.add(btnAdd);
+        top.add(btnDetails);
 
         add(top, BorderLayout.NORTH);
         add(new JScrollPane(table), BorderLayout.CENTER);
@@ -47,7 +51,7 @@ public class PrescriptionPanel extends JPanel {
 
         btnAdd.addActionListener(e -> {
             try {
-                Prescription p = PrescriptionDialog.showAddDialog(
+                var p = PrescriptionDialog.showAddDialog(
                         this,
                         patientController.getAll(),
                         clinicianController.getAll(),
@@ -62,6 +66,20 @@ public class PrescriptionPanel extends JPanel {
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Create failed: " + ex.getMessage());
             }
+        });
+
+        btnDetails.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row < 0) {
+                JOptionPane.showMessageDialog(this, "Please select a row.");
+                return;
+            }
+            String rxId = (String) tableModel.getValueAt(row, 0);
+            DetailsDialog.showDetails(
+                    this,
+                    "Prescription Details - " + rxId,
+                    prescriptionController.getDetailsById(rxId)
+            );
         });
     }
 

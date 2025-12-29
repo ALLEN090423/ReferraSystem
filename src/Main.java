@@ -1,15 +1,17 @@
-import controller.ClinicianController;
-import controller.PatientController;
-import controller.PrescriptionController;
-import controller.ReferralController;
+import controller.*;
 import view.MainFrame;
 
 import javax.swing.*;
 import java.util.Locale;
 
+/**
+ * Application entry point.
+ * Forces Swing UI language to English for consistent marking.
+ */
 public class Main {
     public static void main(String[] args) {
 
+        // Force English labels for Swing option dialogs (OK/Cancel/Yes/No)
         Locale.setDefault(Locale.ENGLISH);
         UIManager.put("OptionPane.okButtonText", "OK");
         UIManager.put("OptionPane.cancelButtonText", "Cancel");
@@ -24,13 +26,16 @@ public class Main {
                 ClinicianController cc = new ClinicianController();
                 cc.load("data/clinicians.csv");
 
+                AppointmentController ac = new AppointmentController();
+                ac.load("data/appointments.csv");
+
                 ReferralController rc = new ReferralController();
                 rc.load("data/referrals.csv");
 
                 PrescriptionController prc = new PrescriptionController();
                 prc.load("data/prescriptions.csv");
 
-                MainFrame frame = new MainFrame(pc, cc, rc, prc);
+                MainFrame frame = new MainFrame(pc, cc, ac, rc, prc);
                 frame.setVisible(true);
 
             } catch (Exception e) {

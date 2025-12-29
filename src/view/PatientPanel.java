@@ -9,6 +9,10 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Swing panel for displaying and managing patients.
+ * Shows core fields in a table and full details in a separate dialog.
+ */
 public class PatientPanel extends JPanel {
 
     private final PatientController patientController;
@@ -22,26 +26,22 @@ public class PatientPanel extends JPanel {
 
         setLayout(new BorderLayout(10, 10));
 
-        // 顶部按钮区
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton btnRefresh = new JButton("Refresh");
         JButton btnAdd = new JButton("Add Patient");
         JButton btnDelete = new JButton("Delete Selected");
+        JButton btnDetails = new JButton("View Details");
 
         top.add(btnRefresh);
         top.add(btnAdd);
         top.add(btnDelete);
-
-        // 表格区
-        JScrollPane scrollPane = new JScrollPane(table);
+        top.add(btnDetails);
 
         add(top, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
+        add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // 初次加载显示
         refreshTable();
 
-        // 事件绑定
         btnRefresh.addActionListener(e -> refreshTable());
 
         btnAdd.addActionListener(e -> {
@@ -51,20 +51,20 @@ public class PatientPanel extends JPanel {
                 refreshTable();
                 try {
                     patientController.save();
-                    JOptionPane.showMessageDialog(this, "Patient added and saved to patients.csv");
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(this, "Save failed: " + ex.getMessage());
-                } }
+                }
+            }
         });
 
         btnDelete.addActionListener(e -> {
             int row = table.getSelectedRow();
             if (row < 0) {
-                JOptionPane.showMessageDialog(this, "Please select a row to delete.");
+                JOptionPane.showMessageDialog(this, "Please select a row.");
                 return;
             }
-            String id = (String) tableModel.getValueAt(row, 0);
 
+            String id = (String) tableModel.getValueAt(row, 0);
             int confirm = JOptionPane.showConfirmDialog(
                     this,
                     "Delete patient " + id + "?",
@@ -73,22 +73,29 @@ public class PatientPanel extends JPanel {
             );
 
             if (confirm == JOptionPane.YES_OPTION) {
-                boolean ok = patientController.deleteById(id); // 1️⃣ 先删内存
-                if (!ok) {
-                    JOptionPane.showMessageDialog(this, "Delete failed: patient not found.");
-                    return;
-                }
-
-                refreshTable(); // 2️⃣ 刷新表格
-
-                try {
-                    patientController.save(); // 3️⃣ 写回 patients.csv
-                    JOptionPane.showMessageDialog(this, "Patient deleted and saved to patients.csv");
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Save failed: " + ex.getMessage());
+                if (patientController.deleteById(id)) {
+                    refreshTable();
+                    try {
+                        patientController.save();
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(this, "Save failed: " + ex.getMessage());
+                    }
                 }
             }
+        });
 
+        btnDetails.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row < 0) {
+                JOptionPane.showMessageDialog(this, "Please select a row.");
+                return;
+            }
+            String id = (String) tableModel.getValueAt(row, 0);
+            DetailsDialog.showDetails(
+                    this,
+                    "Patient Details - " + id,
+                    patientController.getDetailsById(id)
+            );
         });
     }
 
@@ -96,24 +103,30 @@ public class PatientPanel extends JPanel {
         tableModel.setPatients(patientController.getAll());
     }
 
-    // ---------------- Table Model ----------------
+    /**
+     * Table model showing only core patient fields.
+     */
     private static class PatientTableModel extends AbstractTableModel {
-        private final String[] columns = {"ID", "Name", "NHS", "DOB", "Phone", "Email", "GP Surgery"};
+
+        private final String[] columns = {
+                "Patient ID", "Name", "NHS Number", "Date of Birth", "Phone", "Email", "GP Surgery"
+        };
+
         private List<Patient> data = new ArrayList<>();
 
         public void setPatients(List<Patient> patients) {
-            this.data = (patients == null) ? new ArrayList<>() : patients;
+            this.data = patients == null ? new ArrayList<>() : patients;
             fireTableDataChanged();
         }
 
         @Override public int getRowCount() { return data.size(); }
         @Override public int getColumnCount() { return columns.length; }
-        @Override public String getColumnName(int column) { return columns[column]; }
+        @Override public String getColumnName(int col) { return columns[col]; }
 
         @Override
-        public Object getValueAt(int rowIndex, int columnIndex) {
-            Patient p = data.get(rowIndex);
-            return switch (columnIndex) {
+        public Object getValueAt(int row, int col) {
+            Patient p = data.get(row);
+            return switch (col) {
                 case 0 -> p.getUserId();
                 case 1 -> p.getName();
                 case 2 -> p.getNhsNumber();

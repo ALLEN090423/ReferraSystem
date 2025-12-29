@@ -11,18 +11,34 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.util.*;
 
+/**
+ * Controller responsible for loading and creating prescriptions.
+ * It also caches raw CSV rows so full details can be displayed.
+ */
 public class PrescriptionController {
 
     private final List<Prescription> prescriptions = new ArrayList<>();
+
+    // prescription_id -> full CSV row (all columns preserved)
+    private final Map<String, Map<String, String>> rawById = new HashMap<>();
+
     private String filePath;
+
+    // Header order must match prescriptions.csv exactly
+    private static final List<String> PRESCRIPTION_HEADER = List.of(
+            "prescription_id","patient_id","clinician_id","appointment_id","prescription_date",
+            "medication_name","dosage","frequency","duration_days","quantity","instructions",
+            "pharmacy_name","status","issue_date","collection_date"
+    );
 
     public void load(String filePath) throws IOException {
         this.filePath = filePath;
         prescriptions.clear();
+        rawById.clear();
 
         CSVTable table = CSVTable.load(filePath);
         for (Map<String, String> row : table.getRows()) {
-            prescriptions.add(new Prescription(
+            Prescription p = new Prescription(
                     get(row, "prescription_id"),
                     get(row, "patient_id"),
                     get(row, "clinician_id"),
@@ -38,12 +54,28 @@ public class PrescriptionController {
                     get(row, "status"),
                     get(row, "issue_date"),
                     get(row, "collection_date")
-            ));
+            );
+            prescriptions.add(p);
+            rawById.put(p.getPrescriptionId(), new HashMap<>(row));
         }
     }
 
     public List<Prescription> getAll() {
         return new ArrayList<>(prescriptions);
+    }
+
+    /**
+     * Return full CSV details for a prescription by ID.
+     */
+    public Map<String, String> getDetailsById(String rxId) {
+        Map<String, String> row = rawById.get(rxId);
+        if (row == null) return Map.of();
+
+        Map<String, String> ordered = new LinkedHashMap<>();
+        for (String col : PRESCRIPTION_HEADER) {
+            ordered.put(col, row.getOrDefault(col, ""));
+        }
+        return ordered;
     }
 
     public Prescription createAndPersist(
@@ -58,7 +90,7 @@ public class PrescriptionController {
             String instructions,
             String pharmacyName,
             String status,
-            String collectionDate // 可空
+            String collectionDate
     ) throws IOException {
 
         if (filePath == null || filePath.isBlank()) throw new IOException("prescriptions.csv not loaded");
@@ -71,7 +103,7 @@ public class PrescriptionController {
                 patient == null ? "" : patient.getUserId(),
                 clinician == null ? "" : clinician.getUserId(),
                 safe(appointmentId),
-                today,                       // prescription_date
+                today,
                 safe(medicationName),
                 safe(dosage),
                 safe(frequency),
@@ -80,17 +112,25 @@ public class PrescriptionController {
                 safe(instructions),
                 safe(pharmacyName),
                 safe(status),
-                today,                       // issue_date
-                safe(collectionDate)         // collection_date
+                today,
+                safe(collectionDate)
         );
 
-        // 1) 内存加入
+        // 1) In-memory list
         prescriptions.add(p);
 
-        // 2) 追加写回 CSV
-        CSVAppendWriter.appendRow(filePath, toRow(p));
+        // 2) Append to CSV
+        String[] row = toRow(p);
+        CSVAppendWriter.appendRow(filePath, row);
 
-        // 3) 生成处方文本（用于 rubric：output text file content）
+        // 3) Cache raw row for details
+        Map<String, String> raw = new HashMap<>();
+        for (int i = 0; i < PRESCRIPTION_HEADER.size(); i++) {
+            raw.put(PRESCRIPTION_HEADER.get(i), row[i] == null ? "" : row[i]);
+        }
+        rawById.put(p.getPrescriptionId(), raw);
+
+        // 4) Output text file for marking
         String text = generatePrescriptionText(p, patient, clinician);
         savePrescriptionTextFile(p, text);
 
@@ -187,7 +227,7 @@ public class PrescriptionController {
     private String generateNextRxId() {
         int max = 0;
         for (Prescription p : prescriptions) {
-            String id = p.getPrescriptionId(); // RX001
+            String id = p.getPrescriptionId();
             if (id != null && id.startsWith("RX")) {
                 String num = id.substring(2).replaceAll("\\D", "");
                 if (!num.isEmpty()) max = Math.max(max, Integer.parseInt(num));
