@@ -56,10 +56,28 @@ public class PatientController {
             throw new IOException("No file loaded yet, cannot save.");
         }
 
-        List<String[]> rows = new ArrayList<>();
+        // 1) 先读一遍原 CSV（为了保留 address/postcode/emergency contact 等字段）
+        CSVTable original = CSVTable.load(loadedFilePath);
+
+        // patient_id -> 原始行
+        Map<String, Map<String, String>> originalById = new HashMap<>();
+        for (Map<String, String> row : original.getRows()) {
+            String id = safe(row.get("patient_id"));
+            if (!id.isEmpty()) originalById.put(id, row);
+        }
+
+        // 2) 构建写回 rows（按 PATIENT_HEADER 顺序输出）
+        List<String[]> outRows = new ArrayList<>();
+
         for (Patient p : patients) {
-            // name 拆成 first/last（简单拆：第一个词当 first，其余当 last）
-            String fullName = p.getName() == null ? "" : p.getName().trim();
+            String id = safe(p.getUserId());
+
+            // 基于原始行（如果存在），否则用空行
+            Map<String, String> base = originalById.getOrDefault(id, new HashMap<>());
+
+            // ---- 更新我们掌控的字段（其余字段保持 base 的值）----
+            // name 拆成 first/last
+            String fullName = safe(p.getName());
             String first = "";
             String last = "";
             if (!fullName.isEmpty()) {
@@ -70,31 +88,30 @@ public class PatientController {
                 }
             }
 
-            // 你 Patient model 目前没包含 gender/address/...，这里先留空
-            // 后面 Step 5.5 可以扩展 Patient 字段再填满
-            String[] r = new String[] {
-                    p.getUserId(),             // patient_id
-                    first,                     // first_name
-                    last,                      // last_name
-                    nullToEmpty(p.getDateOfBirth()), // date_of_birth
-                    nullToEmpty(p.getNhsNumber()),   // nhs_number
-                    "",                        // gender
-                    nullToEmpty(p.getPhone()), // phone_number
-                    nullToEmpty(p.getEmail()), // email
-                    "",                        // address
-                    "",                        // postcode
-                    "",                        // emergency_contact_name
-                    "",                        // emergency_contact_phone
-                    "",                        // registration_date
-                    nullToEmpty(p.getGpSurgery()) // gp_surgery_id
-            };
-            rows.add(r);
+            // 写入/覆盖这些字段
+            base.put("patient_id", id);
+            base.put("first_name", first);
+            base.put("last_name", last);
+            base.put("date_of_birth", safe(p.getDateOfBirth()));
+            base.put("nhs_number", safe(p.getNhsNumber()));
+            base.put("phone_number", safe(p.getPhone()));
+            base.put("email", safe(p.getEmail()));
+            base.put("gp_surgery_id", safe(p.getGpSurgery()));
+
+            // 3) 按 header 输出整行（保留 base 里原本就有的 address/postcode 等）
+            String[] rowArr = new String[PATIENT_HEADER.size()];
+            for (int i = 0; i < PATIENT_HEADER.size(); i++) {
+                String col = PATIENT_HEADER.get(i);
+                rowArr[i] = safe(base.get(col));
+            }
+            outRows.add(rowArr);
         }
 
-        CSVWriter.writeAll(loadedFilePath, PATIENT_HEADER, rows);
+        // 4) 覆盖写回（但字段不会丢，因为我们保留了 base 里的原值）
+        CSVWriter.writeAll(loadedFilePath, PATIENT_HEADER, outRows);
     }
 
-    private String nullToEmpty(String s) {
-        return s == null ? "" : s;
+    private String safe(String s) {
+        return s == null ? "" : s.trim();
     }
 }
