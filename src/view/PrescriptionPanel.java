@@ -12,8 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Swing panel for displaying prescriptions.
- * Shows core fields in JTable and full CSV row in "View Details" dialog.
+ * Swing panel for displaying and managing prescriptions.
+ * Supports add and delete, plus a "View Details" dialog to show all CSV fields.
  */
 public class PrescriptionPanel extends JPanel {
 
@@ -36,10 +36,12 @@ public class PrescriptionPanel extends JPanel {
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton btnRefresh = new JButton("Refresh");
         JButton btnAdd = new JButton("Add Prescription");
+        JButton btnDelete = new JButton("Delete Selected");
         JButton btnDetails = new JButton("View Details");
 
         top.add(btnRefresh);
         top.add(btnAdd);
+        top.add(btnDelete);
         top.add(btnDetails);
 
         add(top, BorderLayout.NORTH);
@@ -65,6 +67,36 @@ public class PrescriptionPanel extends JPanel {
                 }
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Create failed: " + ex.getMessage());
+            }
+        });
+
+        btnDelete.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row < 0) {
+                JOptionPane.showMessageDialog(this, "Please select a row.");
+                return;
+            }
+
+            String rxId = (String) tableModel.getValueAt(row, 0);
+            int confirm = JOptionPane.showConfirmDialog(
+                    this,
+                    "Delete prescription " + rxId + "?",
+                    "Confirm Delete",
+                    JOptionPane.YES_NO_OPTION
+            );
+
+            if (confirm != JOptionPane.YES_OPTION) return;
+
+            try {
+                boolean ok = prescriptionController.deleteById(rxId);
+                if (!ok) {
+                    JOptionPane.showMessageDialog(this, "Delete failed: prescription not found.");
+                    return;
+                }
+                refresh();
+                JOptionPane.showMessageDialog(this, "Prescription deleted and saved.");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Delete failed: " + ex.getMessage());
             }
         });
 

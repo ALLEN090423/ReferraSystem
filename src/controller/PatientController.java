@@ -146,5 +146,46 @@ public class PatientController {
     private String safe(String s) {
         return s == null ? "" : s.trim();
     }
+
+
+    /**
+     * Update an existing patient by ID.
+     * Also updates cached raw CSV row for View Details and persistence.
+     */
+    public boolean update(Patient updated) {
+        if (updated == null) return false;
+
+        for (int i = 0; i < patients.size(); i++) {
+            if (patients.get(i).getUserId().equalsIgnoreCase(updated.getUserId())) {
+                patients.set(i, updated);
+
+                // Update raw cache for key fields (preserve other columns)
+                Map<String, String> base = rawById.getOrDefault(updated.getUserId(), new HashMap<>());
+                String fullName = safe(updated.getName());
+
+                String first = "";
+                String last = "";
+                if (!fullName.isEmpty()) {
+                    String[] parts = fullName.split("\\s+");
+                    first = parts[0];
+                    if (parts.length > 1) last = String.join(" ", java.util.Arrays.copyOfRange(parts, 1, parts.length));
+                }
+
+                base.put("patient_id", safe(updated.getUserId()));
+                base.put("first_name", first);
+                base.put("last_name", last);
+                base.put("date_of_birth", safe(updated.getDateOfBirth()));
+                base.put("nhs_number", safe(updated.getNhsNumber()));
+                base.put("phone_number", safe(updated.getPhone()));
+                base.put("email", safe(updated.getEmail()));
+                base.put("gp_surgery_id", safe(updated.getGpSurgery()));
+
+                rawById.put(updated.getUserId(), base);
+                return true;
+            }
+        }
+        return false;
+    }
+
 }
 

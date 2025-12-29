@@ -12,6 +12,7 @@ import java.util.List;
 /**
  * Swing panel for displaying and managing patients.
  * Shows core fields in a table and full details in a separate dialog.
+ * Supports add, edit and delete with CSV persistence.
  */
 public class PatientPanel extends JPanel {
 
@@ -29,11 +30,13 @@ public class PatientPanel extends JPanel {
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton btnRefresh = new JButton("Refresh");
         JButton btnAdd = new JButton("Add Patient");
+        JButton btnEdit = new JButton("Edit Selected");
         JButton btnDelete = new JButton("Delete Selected");
         JButton btnDetails = new JButton("View Details");
 
         top.add(btnRefresh);
         top.add(btnAdd);
+        top.add(btnEdit);
         top.add(btnDelete);
         top.add(btnDetails);
 
@@ -54,6 +57,38 @@ public class PatientPanel extends JPanel {
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(this, "Save failed: " + ex.getMessage());
                 }
+            }
+        });
+
+        btnEdit.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row < 0) {
+                JOptionPane.showMessageDialog(this, "Please select a row.");
+                return;
+            }
+
+            String id = (String) tableModel.getValueAt(row, 0);
+            Patient existing = findPatientById(id);
+            if (existing == null) {
+                JOptionPane.showMessageDialog(this, "Patient not found.");
+                return;
+            }
+
+            Patient updated = PatientEditDialog.showEditDialog(this, existing);
+            if (updated == null) return;
+
+            boolean ok = patientController.update(updated);
+            if (!ok) {
+                JOptionPane.showMessageDialog(this, "Update failed.");
+                return;
+            }
+
+            refreshTable();
+            try {
+                patientController.save();
+                JOptionPane.showMessageDialog(this, "Patient updated and saved.");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Save failed: " + ex.getMessage());
             }
         });
 
@@ -101,6 +136,13 @@ public class PatientPanel extends JPanel {
 
     private void refreshTable() {
         tableModel.setPatients(patientController.getAll());
+    }
+
+    private Patient findPatientById(String id) {
+        for (Patient p : patientController.getAll()) {
+            if (p.getUserId().equalsIgnoreCase(id)) return p;
+        }
+        return null;
     }
 
     /**
