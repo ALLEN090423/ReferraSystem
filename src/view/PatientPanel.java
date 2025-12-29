@@ -47,10 +47,14 @@ public class PatientPanel extends JPanel {
         btnAdd.addActionListener(e -> {
             Patient p = PatientDialog.showAddDialog(this);
             if (p != null) {
-                patientController.add(p);   // ✅ 内存新增
+                patientController.add(p);
                 refreshTable();
-                JOptionPane.showMessageDialog(this, "Patient added (in-memory). CSV persistence will be added in Step 5.");
-            }
+                try {
+                    patientController.save();
+                    JOptionPane.showMessageDialog(this, "Patient added and saved to patients.csv");
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Save failed: " + ex.getMessage());
+                } }
         });
 
         btnDelete.addActionListener(e -> {
@@ -69,10 +73,22 @@ public class PatientPanel extends JPanel {
             );
 
             if (confirm == JOptionPane.YES_OPTION) {
-                boolean ok = patientController.deleteById(id); // ✅ 内存删除
-                refreshTable();
-                if (!ok) JOptionPane.showMessageDialog(this, "Delete failed: patient not found.");
+                boolean ok = patientController.deleteById(id); // 1️⃣ 先删内存
+                if (!ok) {
+                    JOptionPane.showMessageDialog(this, "Delete failed: patient not found.");
+                    return;
+                }
+
+                refreshTable(); // 2️⃣ 刷新表格
+
+                try {
+                    patientController.save(); // 3️⃣ 写回 patients.csv
+                    JOptionPane.showMessageDialog(this, "Patient deleted and saved to patients.csv");
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Save failed: " + ex.getMessage());
+                }
             }
+
         });
     }
 
