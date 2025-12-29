@@ -1,5 +1,6 @@
 import controller.ClinicianController;
 import controller.PatientController;
+import controller.PrescriptionController;
 import controller.ReferralController;
 import view.MainFrame;
 
@@ -26,7 +27,10 @@ public class Main {
                 ReferralController rc = new ReferralController();
                 rc.load("data/referrals.csv");
 
-                MainFrame frame = new MainFrame(pc, cc, rc);
+                PrescriptionController prc = new PrescriptionController();
+                prc.load("data/prescriptions.csv");
+
+                MainFrame frame = new MainFrame(pc, cc, rc, prc);
                 frame.setVisible(true);
 
             } catch (Exception e) {
